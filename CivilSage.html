@@ -118,79 +118,40 @@
     </footer>
 
     <script>
-        // CONFIGURATION
-        const CONFIG = {
-            GOOGLE_URL: 'https://script.google.com/macros/s/AKfycbxHYsfc4grP96n80-FRp-ZYzLMFk2YPIWXTQZkhEREpZYxwYzYaej1RCa8GCr-vK33AvA/exec',
-            BREVO_KEY: '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',
-            SENDER_EMAIL: 'admin@civilsage.com',
-            SENDER_NAME: 'CivilSage Team'
-        };
+    document.getElementById('combinedForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const email = document.getElementById('userEmail').value;
+        const btn = document.getElementById('submitBtn');
+        const msg = document.getElementById('responseMsg');
 
-        document.getElementById('combinedForm').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const email = document.getElementById('userEmail').value;
-            const btn = document.getElementById('submitBtn');
-            const msg = document.getElementById('responseMsg');
+        btn.disabled = true;
+        btn.innerText = "Syncing...";
 
-            // UI Loading State
-            btn.disabled = true;
-            btn.innerText = "Syncing...";
-            msg.classList.remove('hidden', 'text-red-400', 'text-green-400');
-            msg.innerText = "";
+        try {
+            // Talk to your private Worker instead of directly to APIs
+            const response = await fetch('https://YOUR-WORKER-NAME.workers.dev', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email: email })
+            });
 
-            try {
-                // 1. Parallel Execution: Save to Sheet AND Send Welcome Mail
-                const sheetTask = fetch(CONFIG.GOOGLE_URL, {
-                    method: 'POST',
-                    mode: 'no-cors',
-                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                    body: `email=${encodeURIComponent(email)}`
-                });
-
-                const emailTask = fetch('https://api.brevo.com/v3/smtp/email', {
-                    method: 'POST',
-                    headers: {
-                        'accept': 'application/json',
-                        'api-key': CONFIG.BREVO_KEY,
-                        'content-type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        sender: { name: CONFIG.SENDER_NAME, email: CONFIG.SENDER_EMAIL },
-                        to: [{ email: email }],
-                        subject: "Welcome to the CivilSage Waitlist",
-                        htmlContent: `
-                            <div style="font-family: sans-serif; padding: 20px; color: #333;">
-                                <h2>Build with Certainty.</h2>
-                                <p>Thank you for joining the <b>CivilSage</b> waitlist.</p>
-                                <p>Our platform is currently in private beta, focusing on:</p>
-                                <ul>
-                                    <li><b>AI Audit Engine:</b> Real-time anomaly detection.</li>
-                                    <li><b>Soft-Delete Protection:</b> Safeguarding critical project data.</li>
-                                </ul>
-                                <p>We will contact you as soon as a spot opens up.</p>
-                            </div>`
-                    })
-                });
-
-                // Wait for both to finish
-                await Promise.all([sheetTask, emailTask]);
-
-                // UI Success State
+            if (response.ok) {
                 msg.innerText = "You are now on the priority list.";
                 msg.classList.add('text-green-400');
                 msg.classList.remove('hidden');
                 btn.innerText = "Joined!";
                 document.getElementById('combinedForm').reset();
-
-            } catch (error) {
-                // UI Error State
-                msg.innerText = "Connection error. Please try again.";
-                msg.classList.add('text-red-400');
-                msg.classList.remove('hidden');
-                btn.disabled = false;
-                btn.innerText = "Join Waitlist";
+            } else {
+                throw new Error();
             }
-        });
-    </script>
+        } catch (error) {
+            msg.innerText = "Connection error. Please try again.";
+            msg.classList.add('text-red-400');
+            msg.classList.remove('hidden');
+            btn.disabled = false;
+            btn.innerText = "Join Waitlist";
+        }
+    });
+</script>
 </body>
 </html>
